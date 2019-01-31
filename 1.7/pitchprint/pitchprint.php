@@ -76,8 +76,10 @@ class PitchPrint extends Module {
         $this->registerHook('actionOrderStatusPostUpdate') &&
         $this->registerHook('displayAdminProductsExtra') &&
 		$this->registerHook('displayCustomization') &&
-		$this->registerHook('displayCustomerAccount');
+		$this->registerHook('displayCustomerAccount') &&
+		$this->registerHook('actionBeforeCartUpdateQty');
     }
+
     public function uninstall() {
         if (parent::uninstall()) {
             return true;
@@ -531,6 +533,16 @@ class PitchPrint extends Module {
 			$this->context->controller->errors[] = Tools::displayError('You must first save the product before assigning a design!');
 		}
     }
+
+    // Reset product upon add to cart
+	public function hookActionBeforeCartUpdateQty($params) {
+		$productId = $params['product']->id;
+		if (isset(Context::getContext()->cookie->pp_projects)) {
+			$current = unserialize(Context::getContext()->cookie->pp_projects);
+			unset($current[$productId]);
+			Context::getContext()->cookie->pp_projects = serialize($current);
+		}
+	}
 
     public function hookActionProductUpdate($params) {
 		$pp_pick = (string)Tools::getValue('ppa_values');
