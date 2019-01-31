@@ -277,6 +277,14 @@ class PitchPrint extends Module {
 			$pp_values = $pp_values[0]['value'];
 		}
 
+		// Check for project in session cookie
+		if (empty($pp_values) && isset(Context::getContext()->cookie->pp_projects)) 
+		{
+			$ppCookie = unserialize(Context::getContext()->cookie->pp_projects);
+			if (isset($ppCookie[$productId]))
+				$pp_values = $ppCookie[$productId];
+		}
+
         $pp_previews = '';
         $pp_mode = 'new';
         $pp_project_id = '';
