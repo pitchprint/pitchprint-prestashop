@@ -133,6 +133,13 @@ class PitchPrint extends Module {
 			$productId = (int)Tools::getValue('id_product');
 			$indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = {$productId} AND `type` = 1  AND `is_module` = 1");
 			$this->context->cart->deleteCustomizationToProduct($productId, (int)$indexval);
+
+			// Clear product from session cookie
+			if (isset(Context::getContext()->cookie->pp_projects)) {
+				$current = unserialize(Context::getContext()->cookie->pp_projects);
+				unset($current[$productId]);
+				Context::getContext()->cookie->pp_projects = serialize($current);
+			}
 			die('clear cust');
 		}
 	}
@@ -140,6 +147,7 @@ class PitchPrint extends Module {
 	public function hookDisplayCustomerAccount($params) {
 		return '<div id="pp_mydesigns_div" style="background-color:white; padding:30px"></div>';
 	}
+
 	public function hookDisplayCustomization($params) {
         $params['customization']['name'] = '';
         $value = json_decode(rawurldecode($params['customization']['value']), true);
