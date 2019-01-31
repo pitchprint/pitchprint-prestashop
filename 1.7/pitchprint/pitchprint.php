@@ -113,6 +113,16 @@ class PitchPrint extends Module {
 				'id_module' => $this->id,
 
 			));
+
+			// Store pp_project in session cookie
+			if (isset(Context::getContext()->cookie->pp_projects)) {
+				$oldCookie = unserialize(Context::getContext()->cookie->pp_projects);
+				$oldCookie[$productId] = $pp_values;
+				Context::getContext()->cookie->pp_projects = serialize($oldCookie);
+			} else {
+				Context::getContext()->cookie->pp_projects = serialize(array($productId => $pp_values));
+			}
+
 			$is_ajax = Tools::getValue('ajax');
 			if ($is_ajax == true) die( json_encode(array('product_customization_id' => $pp_customization_id)) );
 		}
