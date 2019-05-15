@@ -397,7 +397,7 @@ class PitchPrint extends Module {
 			$this->context->controller->registerJavascript(
 				'pp-client-js',
 				PP_CLIENT_JS,
-				['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
+				['server' => 'remote', 'position' => 'head', 'priority' => 200]
 			);
 		
 			if ($browserValid) {
