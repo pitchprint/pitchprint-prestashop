@@ -208,7 +208,10 @@ class PitchPrint extends Module {
 			}
 			
 			$pp_empty = true;
-			foreach ($items as $item) if (!empty(json_decode($item['pitchprint']))) $pp_empty = false;
+			foreach ($items as $item) {
+				$ppItemDecoded = json_decode($item['pitchprint']);
+				if (!empty($ppItemDecoded)) $pp_empty = false;
+			}
 			if ($pp_empty) return;
 			
 			$items = json_encode($items);
