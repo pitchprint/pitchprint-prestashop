@@ -450,7 +450,18 @@ class PitchPrint extends Module {
 		$_controller = $this->context->controller;
 		if ($_controller->controller_name === 'AdminProducts' || $_controller->controller_name === 'AdminOrders') {
 			$this->context->controller->addJquery();
-			$this->context->controller->addJS(PP_ADMIN_JS);
+			echo '<script>
+				function addPitchPrintPS() {
+					if (!window.jQuery) {
+						setTimeout(addPitchPrintPS, 500);
+						return;
+					}
+					var ppAdminScript = document.createElement("script");
+					ppAdminScript.src = "'.PP_ADMIN_JS.'";
+					document.head.appendChild(ppAdminScript);
+				}
+				addPitchPrintPS();
+			</script>';
 		}
     }
 
