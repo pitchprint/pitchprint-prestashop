@@ -447,6 +447,7 @@ class PitchPrint extends Module {
 //Admin functions =====================================================================================
 
 	public function hookDisplayBackOfficeHeader($params) {
+		if (Tools::getValue('ajax')) return;
 		$_controller = $this->context->controller;
 		if ($_controller->controller_name === 'AdminProducts' || $_controller->controller_name === 'AdminOrders') {
 			$this->context->controller->addJquery();
