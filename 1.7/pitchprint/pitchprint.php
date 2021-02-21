@@ -4,16 +4,8 @@ if (!defined('_PS_VERSION_')) exit;
 	
 	define('PP_IOBASE', 'https://pitchprint.io');
 
-	if (file_exists(__DIR__.'/utils/browser.php')) {
-		include('utils/browser.php');
-		if (browserValid()) {
-			define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
-		}else{
-			define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/noes6.js');
-		}
-	}else{
-		define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
-	}
+	define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
+	define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
 
 	define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
 	
@@ -367,12 +359,6 @@ class PitchPrint extends Module {
 
     public function hookDisplayHeader($params) {
 		
-		$browserValid = true;
-		
-		if (function_exists('browserValiid')) {
-			$browserValid = browserValid();
-		}
-		
 		if ($this->context->controller->php_self === 'product') {
 			$productId = (int)Tools::getValue('id_product');
 			$pp_design_options = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
@@ -384,16 +370,25 @@ class PitchPrint extends Module {
 					['server' => 'remote', 'position' => 'head', 'priority' => 200]
 				);
 				
-				if( $browserValid ) {		
-					$this->context->controller->registerJavascript(
-						'module-pitchprint-product-buttons',
-						'modules/'.$this->name.'/views/js/client.js',
-						[ 'position' => 'bottom', 'priority' => 200 ]
-					);		
-				} else {
-					// Browser not valid	
-					return '<script>window.ppCartType = "ps"</script>';
-				}
+				$this->context->controller->registerJavascript(
+					'module-pitchprint-product-buttons',
+					'modules/'.$this->name.'/views/js/cartType.js',
+					[ 'position' => 'bottom', 'priority' => 201 ]
+				);	
+				
+				$this->context->controller->registerJavascript(
+					'pp-noes6-js',
+					PP_NOES6_JS,
+					['server' => 'remote', 'position' => 'bottom', 'priority' => 202]
+				);
+						
+				$this->context->controller->registerJavascript(
+					'module-pitchprint-product-buttons',
+					'modules/'.$this->name.'/views/js/client.js',
+					[ 'position' => 'bottom', 'priority' => 203 ]
+				);		
+			
+				return '<script>window.ppCartType = "ps"</script>';
 			}
 		} else if (substr($this->context->controller->php_self, 0, 5) === 'cart' || $this->context->controller->php_self === 'order-detail' || $this->context->controller->php_self === 'order-confirmation' || $this->context->controller->php_self === 'my-account') {
 			
@@ -402,44 +397,54 @@ class PitchPrint extends Module {
 				PP_CLIENT_JS,
 				['server' => 'remote', 'position' => 'head', 'priority' => 200]
 			);
+			
+			$this->context->controller->registerJavascript(
+				'module-pitchprint-product-buttons',
+				'modules/'.$this->name.'/views/js/cartType.js',
+				[ 'position' => 'bottom', 'priority' => 201 ]
+			);	
+			
+			$this->context->controller->registerJavascript(
+				'pp-noes6-js',
+				PP_NOES6_JS,
+				['server' => 'remote', 'bottom' => 'head', 'priority' => 202]
+			);
 		
-			if ($browserValid) {
-				$this->context->controller->registerJavascript(
-					'magnific-photo',
-					MAGNIFIC_JS,
-					['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
-				);
-				$this->context->controller->registerStylesheet(
-					'magnific-photo-css',
-					MAGNIFIC_CSS,
-					['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
-				);
 
-				$this->context->controller->registerJavascript(
-					'module-pitchprint-product-buttons',
-					'modules/'.$this->name.'/views/js/client.js',
-					[
-						'position' => 'bottom',
-						'priority' => 200,
-					]
-				);
+			$this->context->controller->registerJavascript(
+				'magnific-photo',
+				MAGNIFIC_JS,
+				['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
+			);
+			$this->context->controller->registerStylesheet(
+				'magnific-photo-css',
+				MAGNIFIC_CSS,
+				['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
+			);
 
-				$pp_apiKey = Configuration::get(PITCHPRINT_API_KEY);
-				$ppData = array(
-					'staging' => true,
-					'client' => 'ps',
-					'mode' => 'edit',
-					'userId' => $this->context->cookie->id_customer,
-					'langCode' => $this->context->language->iso_code,
-					'apiKey' => $pp_apiKey,
-					'afterValidation' => ($this->context->controller->php_self === 'my-account' ? '_fetchProjects' : '_sortCart')
-				);
+			$this->context->controller->registerJavascript(
+				'module-pitchprint-product-buttons',
+				'modules/'.$this->name.'/views/js/client.js',
+				[
+					'position' => 'bottom',
+					'priority' => 205,
+				]
+			);
 
-				return '<script type="text/javascript">	var pp_data = '.json_encode($ppData).';</script>';
-			}else{
-				// Browser not valid
-				return '<script>window.ppCartType = "ps"</script>';
-			}
+			$pp_apiKey = Configuration::get(PITCHPRINT_API_KEY);
+			$ppData = array(
+				'staging' => true,
+				'client' => 'ps',
+				'mode' => 'edit',
+				'userId' => $this->context->cookie->id_customer,
+				'langCode' => $this->context->language->iso_code,
+				'apiKey' => $pp_apiKey,
+				'afterValidation' => ($this->context->controller->php_self === 'my-account' ? '_fetchProjects' : '_sortCart')
+			);
+
+			return '<script type="text/javascript">	var pp_data = '.json_encode($ppData).';
+			window.ppCartType = "ps"</script>';
+
 		}
     }
 
