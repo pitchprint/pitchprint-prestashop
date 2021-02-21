@@ -5,6 +5,7 @@ if (!defined('_PS_VERSION_')) exit;
 	define('PP_IOBASE', 'https://pitchprint.io');
 	define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
 	define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
+	define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
 	
 	define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '9.0.0', readyFncs: [] };");
 	define('PP_VERSION', "9.0.0");
@@ -105,10 +106,7 @@ class PitchPrint extends Module {
 			}
 
 			$pp_empty = true;
-			foreach ($items as $item) {
-				$ppItemDecoded = json_decode($item['pitchprint']);
-				if (!empty($ppItemDecoded)) $pp_empty = false;
-			}
+			foreach ($items as $item) if (!empty(json_decode($item['pitchprint']))) $pp_empty = false;
 			if ($pp_empty) return;
 			
 			$items = json_encode($items);
@@ -255,7 +253,7 @@ class PitchPrint extends Module {
 						}{$userData}
 					});
 				})(document);
-			</script>" : "";
+			</script><script src='".PP_NOES6_JS."'></script>" : "";
     }
 
 	public function hookDisplayCustomerAccount($params) {
@@ -266,9 +264,14 @@ class PitchPrint extends Module {
 		if ($this->context->controller->php_self === 'product') {
 			$productId = (int)Tools::getValue('id_product');
 			$pp_design_options = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
-			if (isset($pp_design_options[$productId])) $this->context->controller->addJS(PP_CLIENT_JS);
+			if (isset($pp_design_options[$productId])) {
+				$this->context->controller->addJS(PP_CLIENT_JS);
+				$this->context->controller->addJS($this->_path . 'views/js/cartType.js');
+			}
 		} else if (substr($this->context->controller->php_self, 0, 5) === 'order' || $this->context->controller->php_self === 'history' || $this->context->controller->php_self === 'my-account') {
 			$this->context->controller->addJS(PP_CLIENT_JS);
+			$this->context->controller->addJS($this->_path . 'views/js/cartType.js');
+			
 			$pp_apiKey = Configuration::get(PITCHPRINT_API_KEY);
 			$add_js = 'if (document.getElementById("block-order-detail")) { new MutationObserver(function(mutations){ if (mutations && mutations.length) { window.ppclient && window.ppclient._sortCart() }}).observe(document.getElementById("block-order-detail"), {childList:true});};';
 			if ($this->context->controller->php_self === 'my-account') {
@@ -295,7 +298,7 @@ class PitchPrint extends Module {
 						});
 					})(document);
 					jQuery(function($) { {$add_js} });
-				</script>
+				</script><script src='".PP_NOES6_JS."'></script>
 				<style>.ppc-ps-img{margin:5px;border:1px solid #ccc;padding:5px;display:inline-block;}.pp-90thumb{width:90px;}</style>
 			";
 		}
@@ -391,6 +394,7 @@ class PitchPrint extends Module {
 			$this->context->controller->errors[] = Tools::displayError('You must first save the product before assigning a design!');
 		}
     }
+    
     public function hookActionProductUpdate($params) {
 		$pp_pick = (string)Tools::getValue('ppa_values');
         if (!empty($pp_pick) && $pp_pick != "") {
