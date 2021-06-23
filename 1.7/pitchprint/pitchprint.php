@@ -264,14 +264,6 @@ class PitchPrint extends Module {
 		$pp_productValues = isset($pp_design_options[$productId]) ? $pp_design_options[$productId] : '';
 		if (empty($pp_productValues)) return '';
 
-		//update product customizable
-		Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$productId);
-		ObjectModel::updateMultishopTable('product', array(
-			'customizable' => 1,
-		), 'a.id_product = '.(int)$productId);
-		Configuration::updateGlobalValue('PS_CUSTOMIZATION_FEATURE_ACTIVE', '1');
-
-
         $indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = {$productId} AND `type` = 1  AND `is_module` = 1");
 		$pp_values = $this->context->cart->getProductCustomization($productId, (int)$indexval, true);
 		$pp_customization_id = 0;
