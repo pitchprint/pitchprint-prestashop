@@ -69,7 +69,7 @@ class PitchPrint extends Module {
         $this->registerHook('displayAdminProductsExtra') &&
 		$this->registerHook('displayCustomization') &&
 		$this->registerHook('displayCustomerAccount') &&
-		$this->registerHook('actionBeforeCartUpdateQty');
+		$this->registerHook('actionCartUpdateQuantityBefore');
     }
 
     public function uninstall() {
@@ -235,7 +235,6 @@ class PitchPrint extends Module {
 				'status' => $status,
 				'timestamp' => $timestamp
 			);
-			// echo '<pre>'; print_r($body); die();
 
 			$ch = curl_init();
 			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
@@ -572,7 +571,7 @@ class PitchPrint extends Module {
     }
 
     // Reset product upon add to cart
-	public function hookActionBeforeCartUpdateQty($params) {
+	public function hookActionCartUpdateQuantityBefore($params) {
 		$productId = $params['product']->id;
 		if (isset(Context::getContext()->cookie->pp_projects)) {
 			$current = unserialize(Context::getContext()->cookie->pp_projects);
