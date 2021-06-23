@@ -276,7 +276,8 @@ class PitchPrint extends Module {
 			)"
 		);
 		
-		$pp_values = $this->context->cart->getProductCustomization($productId, null, true);
+		$customization_datas = $this->context->cart->getProductCustomization($productId, null, true);
+		$pp_values = $customization_datas;
 		
 		if (!empty($pp_values))
 			$pp_values = array_filter($pp_values, function($item) use($indexval) {
@@ -284,12 +285,11 @@ class PitchPrint extends Module {
 			});
 
 		$pp_customization_id = 0;
+		if (!empty($customization_datas)) 
+			$pp_customization_id = $customization_datas[0]['id_customization'];
 
 		if (!empty($pp_values))
-		{
-			$pp_customization_id = $pp_values[0]['id_customization'];
 			$pp_values = $pp_values[0]['value'];
-		}
 
 		// Check for project in session cookie
 		if (empty($pp_values) && isset(Context::getContext()->cookie->pp_projects)) 
