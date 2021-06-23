@@ -84,23 +84,31 @@ class PitchPrint extends Module {
 		$pp_values = (string)Tools::getValue('values');
 		if (!empty($pp_values) AND $this->context->controller->php_self === 'product') {
 			$indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = {$productId} AND `type` = 1  AND `is_module` = 1");
+			
+			if (empty($indexval)) 
+        		$indexval = $this->createCustomizationField((int)$productId);
+
 			if (!$this->context->cart->id && isset($_COOKIE[$this->context->cookie->getName()])) {
 				$this->context->cart->add();
 				$this->context->cookie->id_cart = (int)$this->context->cart->id;
 			}
 
-			Db::getInstance()->insert('customization', array(
-				'id_cart' => $this->context->cart->id,
-				'id_product' => $productId,
-				//'id_product_attribute' => $id_product_attribute,
-				'quantity' => 0,
-				'in_cart' => 0,
-			));
+			$cCid = $this->context->cart->getProductCustomization($productId, null, true);
+			if (empty($cCid)) {
+				Db::getInstance()->insert('customization', array(
+					'id_cart' => $this->context->cart->id,
+					'id_product' => $productId,
+					//'id_product_attribute' => $id_product_attribute,
+					'quantity' => 0,
+					'in_cart' => 0,
+				));
 
-			$pp_customization_id = Db::getInstance()->Insert_ID();
-
+				$cCid = array(array());
+				$cCid[0]['id_customization'] = Db::getInstance()->Insert_ID();
+			}
+			
 			Db::getInstance()->insert('customized_data', array(
-				'id_customization' => $pp_customization_id,
+				'id_customization' => $cCid[0]['id_customization'],
 				'type' => 1,
 				'index' => $indexval,
 				'value' => $pp_values,
@@ -118,7 +126,7 @@ class PitchPrint extends Module {
 			}
 
 			$is_ajax = Tools::getValue('ajax');
-			if ($is_ajax == true) die( json_encode(array('product_customization_id' => $pp_customization_id)) );
+			if ($is_ajax == true) die( json_encode(array('product_customization_id' => $cCid[0]['id_customization'])) );
 		}
 	}
 
@@ -564,6 +572,24 @@ class PitchPrint extends Module {
 		}
 	}
 
+	private function createCustomizationField($id_product) {
+    	$p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
+        if (!isset($p_designs[$id_product]) && empty($p_designs[$id_product])) return null;
+        $arr = explode(':', $p_designs[$id_product]);
+
+		Db::getInstance()->insert('customization_field', array('id_product' => $id_product, 'type' => 1, 'required' => $arr[2], 'is_module' => 1));
+		$custmz_field =	(int) Db::getInstance()->Insert_ID();
+		
+		if (!empty($custmz_field)) {
+            $languages = Language::getLanguages(false);
+            foreach ($languages as $lang) {
+				Db::getInstance()->execute("INSERT INTO `" . _DB_PREFIX_ . "customization_field_lang` (`id_customization_field`, `id_lang`, `name`) VALUES ('{$custmz_field}', '{$lang['id_lang']}', '" . PITCHPRINT_ID_CUSTOMIZATION_NAME . "') ON DUPLICATE KEY UPDATE `id_lang` = '{$lang['id_lang']}', `name` = '" . PITCHPRINT_ID_CUSTOMIZATION_NAME . "'");
+            }
+        }
+
+        return $custmz_field;
+    }
+
     public function hookActionProductUpdate($params) {
 		$pp_pick = (string)Tools::getValue('ppa_values');
         if (!empty($pp_pick) && $pp_pick != "") {
@@ -574,21 +600,6 @@ class PitchPrint extends Module {
             $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
             $p_designs[$id_product] = $pp_pick;
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, serialize($p_designs));
-            $custmz_field = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `" . _DB_PREFIX_ . "customization_field` WHERE `id_product` = {$id_product} AND `type` = 1  AND `is_module` = 1");
-
-			if (empty($custmz_field)) {
-				Db::getInstance()->insert('customization_field', array('id_product' => $id_product, 'type' => 1, 'required' => $arr[2], 'is_module' => 1));
-				$custmz_field = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `" . _DB_PREFIX_ . "customization_field` WHERE `id_product` = {$id_product} AND `type` = 1  AND `is_module` = 1");
-			} else {
-                Db::getInstance()->update('customization_field', array('required' => $arr[2]), '`id_customization_field` = '.$custmz_field);
-            }
-
-			if (!empty($custmz_field)) {
-                $languages = Language::getLanguages(false);
-                foreach ($languages as $lang) {
-					Db::getInstance()->execute("INSERT INTO `" . _DB_PREFIX_ . "customization_field_lang` (`id_customization_field`, `id_lang`, `name`) VALUES ('{$custmz_field}', '{$lang['id_lang']}', '" . PITCHPRINT_ID_CUSTOMIZATION_NAME . "') ON DUPLICATE KEY UPDATE `id_lang` = '{$lang['id_lang']}', `name` = '" . PITCHPRINT_ID_CUSTOMIZATION_NAME . "'");
-                }
-            }
 
             //update product customizable
             Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$id_product);
