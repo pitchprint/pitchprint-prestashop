@@ -17,7 +17,7 @@ if (!defined('_PS_VERSION_')) exit;
 
     define('PITCHPRINT_P_DESIGNS', 'pitchprint_p_designs');
 
-    define('PITCHPRINT_ID_CUSTOMIZATION_NAME', '@PP@');
+    define('PITCHPRINT_ID_CUSTOMIZATION_NAME', 'PitchPrint');
 
 	define('MAGNIFIC_JS', '//dta8vnpq1ae34.cloudfront.net/javascripts/jquery.magnific-popup.min.js');
 	define('MAGNIFIC_CSS', '//dta8vnpq1ae34.cloudfront.net/stylesheets/magnific-popup.css');
@@ -263,9 +263,26 @@ class PitchPrint extends Module {
 		$pp_design_options = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
 		$pp_productValues = isset($pp_design_options[$productId]) ? $pp_design_options[$productId] : '';
 		if (empty($pp_productValues)) return '';
+   
+		$indexval = Db::getInstance()->getValue(
+			"SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` 
+			WHERE `id_product` = {$productId} 
+			AND `type` = 1  
+			AND `is_module` = 1 
+			AND `id_customization_field` 
+			IN (
+				SELECT `id_customization_field` FROM `". _DB_PREFIX_."customization_field_lang` 
+				WHERE `name` = '".PITCHPRINT_ID_CUSTOMIZATION_NAME."'
+			)"
+		);
+		
+		$pp_values = $this->context->cart->getProductCustomization($productId, null, true);
+		
+		if (!empty($pp_values))
+			$pp_values = array_filter($pp_values, function($item) use($indexval) {
+				return ($item['index'] == $indexval);
+			});
 
-        $indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = {$productId} AND `type` = 1  AND `is_module` = 1");
-		$pp_values = $this->context->cart->getProductCustomization($productId, (int)$indexval, true);
 		$pp_customization_id = 0;
 
 		if (!empty($pp_values))
