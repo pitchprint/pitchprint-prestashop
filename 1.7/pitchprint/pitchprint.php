@@ -288,7 +288,7 @@ class PitchPrint extends Module {
 			$pp_customization_id = $customization_datas[0]['id_customization'];
 
 		if (!empty($pp_values))
-			$pp_values = $pp_values[0]['value'];
+			$pp_values = array_values($pp_values)[0]['value'];
 
 		// Check for project in session cookie
 		if (empty($pp_values) && isset(Context::getContext()->cookie->pp_projects)) 
