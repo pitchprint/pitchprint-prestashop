@@ -111,7 +111,7 @@ class PitchPrint extends Module {
 				'id_customization' => $cCid[0]['id_customization'],
 				'type' => 1,
 				'index' => $indexval,
-				'value' => $pp_values,
+				'value' => Db::getInstance()->escape($pp_values),
 				'id_module' => $this->id,
 
 			));
