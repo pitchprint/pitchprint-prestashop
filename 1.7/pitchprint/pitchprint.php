@@ -142,7 +142,7 @@ class PitchPrint extends Module {
 				unset($current[$productId]);
 				Context::getContext()->cookie->pp_projects = serialize($current);
 			}
-			die('clear cust');
+			die(json_encode(array('cleared'=>true)));
 		}
 	}
 
