@@ -321,6 +321,16 @@ class PitchPrint extends Module {
 
         if (!is_string($pp_values)) $pp_values = json_encode($pp_values, true);
 
+		 //update product customizable
+        Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$id_product);
+
+        //update product_shop count fields labels
+        ObjectModel::updateMultishopTable('product', array(
+            'customizable' => 1,
+        ), 'a.id_product = '.(int)$id_product);
+
+        Configuration::updateGlobalValue('PS_CUSTOMIZATION_FEATURE_ACTIVE', '1');
+
 		$ppData = array(
             'createButtons' => true,
 			'client' => 'ps',
@@ -608,17 +618,6 @@ class PitchPrint extends Module {
             $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
             $p_designs[$id_product] = $pp_pick;
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, serialize($p_designs));
-
-            //update product customizable
-            Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$id_product);
-
-            //update product_shop count fields labels
-            ObjectModel::updateMultishopTable('product', array(
-                'customizable' => 1,
-            ), 'a.id_product = '.(int)$id_product);
-
-            Configuration::updateGlobalValue('PS_CUSTOMIZATION_FEATURE_ACTIVE', '1');
-
         }
         return;
     }
