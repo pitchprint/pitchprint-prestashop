@@ -162,6 +162,7 @@ class PitchPrint extends Module {
 
 		$smarty = new Smarty();
 		$smarty->assign('pp_customization', $value);
+		$smarty->assign('raw_pp_customization', $params['customization']['value']);
 		$html = $smarty->fetch(__DIR__ . '/views/templates/admin/displayCustomization.tpl');
 		return $html;
 	}
