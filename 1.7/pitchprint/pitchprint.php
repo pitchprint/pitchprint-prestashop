@@ -2,7 +2,7 @@
 
 if (!defined('_PS_VERSION_')) exit;
 	
-	define('PP_IOBASE', 'https://pitchprint.io');
+	define('PP_IOBASE', 'https://pitchprint.com');
 
 	define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
 	define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
@@ -323,12 +323,12 @@ class PitchPrint extends Module {
         if (!is_string($pp_values)) $pp_values = json_encode($pp_values, true);
 
 		 //update product customizable
-        Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$id_product);
+        Db::getInstance()->execute('UPDATE `'._DB_PREFIX_.'product` SET `customizable` = 1 WHERE `id_product` = '.(int)$productId);
 
         //update product_shop count fields labels
         ObjectModel::updateMultishopTable('product', array(
             'customizable' => 1,
-        ), 'a.id_product = '.(int)$id_product);
+        ), 'a.id_product = '.(int)$productId);
 
         Configuration::updateGlobalValue('PS_CUSTOMIZATION_FEATURE_ACTIVE', '1');
 
@@ -673,7 +673,7 @@ class PitchPrint extends Module {
                     'type' => 'text',
                     'label' => $this->l('PitchPrint API Key'),
                     'name' => PITCHPRINT_API_KEY,
-                    'suffix' => '&nbsp; &nbsp; :&nbsp; <a href="https://admin.pitchprint.io/domains" target="_blank">Generate Keys here</a>, &nbsp; &nbsp; : &nbsp; &nbsp; <a target="_blank" href="https://docs.pitchprint.com">Online Documentation</a>',
+                    'suffix' => '&nbsp; &nbsp; :&nbsp; <a href="https://admin.pitchprint.com/domains" target="_blank">Generate Keys here</a>, &nbsp; &nbsp; : &nbsp; &nbsp; <a target="_blank" href="https://docs.pitchprint.com">Online Documentation</a>',
                     'size' => 40,
                     'required' => true
                 ),
