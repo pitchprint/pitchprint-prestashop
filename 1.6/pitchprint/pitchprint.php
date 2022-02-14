@@ -462,7 +462,7 @@ class PitchPrint extends Module {
                     'type' => 'text',
                     'label' => $this->l('PitchPrint API Key'),
                     'name' => PITCHPRINT_API_KEY,
-                    'suffix' => '&nbsp; &nbsp; :&nbsp; <a href="https://admin.pitchprint.io/domains" target="_blank">Generate Keys here</a>, &nbsp; &nbsp; : &nbsp; &nbsp; <a target="_blank" href="https://docs.pitchprint.com">Online Documentation</a>',
+                    'suffix' => '&nbsp; &nbsp; :&nbsp; <a href="https://admin.pitchprint.com/domains" target="_blank">Generate Keys here</a>, &nbsp; &nbsp; : &nbsp; &nbsp; <a target="_blank" href="https://docs.pitchprint.com">Online Documentation</a>',
                     'size' => 40,
                     'required' => true
                 ),

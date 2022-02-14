@@ -5,6 +5,7 @@ if (!defined('_PS_VERSION_')) exit;
 	define('PP_IOBASE', 'https://pitchprint.com');
 
 	define('PP_CLIENT_JS', 'https://pitchprint.io/rsc/js/client.js');
+	define('PP_CAT_CLIENT_JS', 'https://pitchprint.io/rsc/js/cat-client.js');
 	define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
 
 	define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
@@ -14,6 +15,7 @@ if (!defined('_PS_VERSION_')) exit;
 
     define('PITCHPRINT_API_KEY', 'pitchprint_API_KEY');
     define('PITCHPRINT_SECRET_KEY', 'pitchprint_SECRET_KEY');
+    define('PITCHPRINT_CATEGORY_CUSTOMIZATION', 'pitchprint_CATEGORY_CUSTOMIZATION');
 
     define('PITCHPRINT_P_DESIGNS', 'pitchprint_p_designs');
 
@@ -40,6 +42,7 @@ class PitchPrint extends Module {
 
         $this->clearCustomization();
         $this->createCustomization();
+        $this->serveDesignIds();
 	}
 
     public function install() {
@@ -71,7 +74,19 @@ class PitchPrint extends Module {
 		$this->registerHook('displayCustomerAccount') &&
 		$this->registerHook('actionCartUpdateQuantityBefore');
     }
-
+	private function serveDesignIds() {
+		if (Tools::getValue('pp_serve_designs') != 1) return;
+		
+		$productIds = json_decode(Tools::getValue('ids'));
+		$pp_design_options = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
+		
+		$ids = [];
+		foreach ($productIds as $pId)
+			$ids[$pId] =  isset($pp_design_options[$pId]) ? $pp_design_options[$pId] : '';
+		
+		die(json_encode(array('designs'=>$ids, 'apiKey'=>Configuration::get(PITCHPRINT_API_KEY))));
+	}
+	
     public function uninstall() {
         if (parent::uninstall()) {
             return true;
@@ -82,7 +97,8 @@ class PitchPrint extends Module {
 	public function createCustomization() {
 		$productId = (int)Tools::getValue('id_product');
 		$pp_values = (string)Tools::getValue('values');
-		if (!empty($pp_values) AND $this->context->controller->php_self === 'product') {
+		if (!empty($pp_values) AND ($this->context->controller->php_self === 'product' 
+		  || $this->context->controller->php_self === 'category')) {
 			$indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = {$productId} AND `type` = 1  AND `is_module` = 1");
 			
 			if (empty($indexval)) 
@@ -385,7 +401,21 @@ class PitchPrint extends Module {
     }
 
     public function hookDisplayHeader($params) {
-		
+		if ($this->context->controller->php_self  === 'category'
+		  && Configuration::get(PITCHPRINT_CATEGORY_CUSTOMIZATION)) {
+		  	
+			$this->context->controller->registerJavascript(
+				'pp-client-js',
+				PP_CLIENT_JS,
+				['server' => 'remote', 'position' => 'head', 'priority' => 200]
+			);
+			$this->context->controller->registerJavascript(
+				'category-pitchprint-product-buttons',
+				PP_CAT_CLIENT_JS,
+				['server' => 'remote', 'position' => 'bottom', 'priority' => 203 ]
+			);	
+		}
+			
 		if ($this->context->controller->php_self === 'product') {
 			$productId = (int)Tools::getValue('id_product');
 			$pp_design_options = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
@@ -646,6 +676,8 @@ class PitchPrint extends Module {
       if (Tools::isSubmit('submit'.$this->name)) {
           $pitchprint_api = strval(Tools::getValue(PITCHPRINT_API_KEY));
           $pitchprint_secret = strval(Tools::getValue(PITCHPRINT_SECRET_KEY));
+          $pp_cat_cust_enabled = strval(Tools::getValue(PITCHPRINT_CATEGORY_CUSTOMIZATION.'_enabled'));
+
           if (!$pitchprint_api  || empty($pitchprint_api) || !Validate::isGenericName($pitchprint_api) || !$pitchprint_secret  || empty($pitchprint_secret) || !Validate::isGenericName($pitchprint_secret)) {
               $output .= $this->displayError( $this->l('Invalid Configuration value') );
           } else {
@@ -653,7 +685,8 @@ class PitchPrint extends Module {
                 $pitchprint_secret = str_replace(' ', '', $pitchprint_secret);
                 Configuration::updateValue(PITCHPRINT_API_KEY, $pitchprint_api);
                 Configuration::updateValue(PITCHPRINT_SECRET_KEY, $pitchprint_secret);
-
+				Configuration::updateValue(PITCHPRINT_CATEGORY_CUSTOMIZATION, $pp_cat_cust_enabled === "on" ? true : false);
+                
                 $output .= $this->displayConfirmation($this->l('Settings updated'));
           }
       }
@@ -683,7 +716,22 @@ class PitchPrint extends Module {
                     'name' => PITCHPRINT_SECRET_KEY,
                     'size' => 40,
                     'required' => true
-                )
+                ),
+                array(
+                	'type'=>'checkbox',
+	            	'name'=> PITCHPRINT_CATEGORY_CUSTOMIZATION,
+	            	'values' => array(
+	            		'query'=> [
+	            			[
+	            				'id_option' => 'enabled',
+	            				'name' => ' Enable customize buttons on category'
+	            				
+	            			]
+            			],
+	            		'id'=> 'id_option',
+	            		'name'=> 'name'
+	            	)
+				)
             ),
             'submit' => array(
                 'title' => $this->l('Save'),
@@ -721,6 +769,7 @@ class PitchPrint extends Module {
         // Load current value
         $helper->fields_value[PITCHPRINT_API_KEY] = Configuration::get(PITCHPRINT_API_KEY);
         $helper->fields_value[PITCHPRINT_SECRET_KEY] = Configuration::get(PITCHPRINT_SECRET_KEY);
+        $helper->fields_value[PITCHPRINT_CATEGORY_CUSTOMIZATION.'_enabled'] = Configuration::get(PITCHPRINT_CATEGORY_CUSTOMIZATION);
 
         return $helper->generateForm($fields_form);
     }
