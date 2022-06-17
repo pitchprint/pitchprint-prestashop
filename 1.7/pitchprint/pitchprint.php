@@ -123,6 +123,11 @@ class PitchPrint extends Module {
 				$cCid[0]['id_customization'] = Db::getInstance()->Insert_ID();
 			}
 			
+			// Add shop id
+			$pp_values = json_decode(urldecode($pp_values));
+			$pp_values->shop_id = (int)Context::getContext()->shop->id;
+			$pp_values = urlencode(json_encode($pp_values));
+			
 			Db::getInstance()->insert('customized_data', array(
 				'id_customization' => $cCid[0]['id_customization'],
 				'type' => 1,
@@ -642,8 +647,6 @@ class PitchPrint extends Module {
     public function hookActionProductUpdate($params) {
 		$pp_pick = (string)Tools::getValue('ppa_values');
         if (!empty($pp_pick) && $pp_pick != "") {
-            $arr = explode(':', $pp_pick);
-
 			$id_product = (int)$params['id_product'];
 
             $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
