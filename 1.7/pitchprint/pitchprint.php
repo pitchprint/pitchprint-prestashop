@@ -11,7 +11,7 @@ if (!defined('_PS_VERSION_')) exit;
 	define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
 	
 	define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '9.0.0', readyFncs: [] };");
-	define('PP_VERSION', "9.0.0");
+	define('PP_VERSION', "10.0.0");
 
     define('PITCHPRINT_API_KEY', 'pitchprint_API_KEY');
     define('PITCHPRINT_SECRET_KEY', 'pitchprint_SECRET_KEY');
@@ -29,7 +29,7 @@ class PitchPrint extends Module {
     public function __construct() {
         $this->name = 'pitchprint';
         $this->tab = 'front_office_features';
-        $this->version = 9.0;
+        $this->version = 10.0;
         $this->author = 'PitchPrint Inc.';
         $this->need_instance = 1;
         $this->ps_versions_compliancy = array('min' => '1.7', 'max' => _PS_VERSION_);
@@ -255,7 +255,8 @@ class PitchPrint extends Module {
 				'apiKey' => $pitchprint_api_value,
 				'signature' => $signature,
 				'status' => $status,
-				'timestamp' => $timestamp
+				'timestamp' => $timestamp,
+				'shop_id' => (int)Context::getContext()->shop->id
 			);
 
 			$ch = curl_init();
