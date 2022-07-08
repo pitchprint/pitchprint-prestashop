@@ -189,94 +189,106 @@ class PitchPrint extends Module {
 	}
 
 	public function hookActionOrderStatusPostUpdate($params) {
+		$statusId = (int)$params['newOrderStatus']->id;
+		$doHook = ($statusId === 3 || $statusId === 4); 
+		if (!$doHook) return; // At this stage we only provide webhook for order processing or completed
+		
 		$order = new Order((int)$params['id_order']);
-		$status = ($order->hasBeenPaid() || (int)$params['newOrderStatus']->paid === 1) ? 1 : 0;
-
+		
 		$id_cart = $order->id_cart;
 		
-		if ($status === 1) {
-			$products = $order->getCartProducts();
-			$customer = $order->getCustomer();
-			$items = array();
+		$status = '';
+		
+		switch($statusId) {
+			case 3:
+				$status = 'processing';
+				break;
+			case 4:
+				$status = 'complete';
+				break;
+		}
+		
+		$products = $order->getCartProducts();
+		$customer = $order->getCustomer();
+		$items = array();
 
-			$address = new Address($order->id_address_delivery);
+		$address = new Address($order->id_address_delivery);
+		
+		foreach($products as $prod) {
 			
-			foreach($products as $prod) {
+			$pitchprint = '';
+
+			if ($prod['customizedDatas'] != null) {
 				
-				$pitchprint = '';
+				$data_in = Db::getInstance()->executeS("SELECT `value` FROM `"._DB_PREFIX_."customized_data` WHERE
+					`id_customization` =".$prod['id_customization']);
 
-				if ($prod['customizedDatas'] != null) {
-					
-					$data_in = Db::getInstance()->executeS("SELECT `value` FROM `"._DB_PREFIX_."customized_data` WHERE
-						`id_customization` =".$prod['id_customization']);
+				foreach ($data_in as $data_item) {
 
-					foreach ($data_in as $data_item) {
+					$array_data = (array) json_decode(rawurldecode($data_item['value']));
 
-						$array_data = (array) json_decode(rawurldecode($data_item['value']));
-
-						if (is_array($array_data) 
-							&& count(array_keys($array_data)) 
-								&& in_array('type', array_keys($array_data)) && $array_data['type'] == 'p')
-								$pitchprint = $array_data;
-					}
+					if (is_array($array_data) 
+						&& count(array_keys($array_data)) 
+							&& in_array('type', array_keys($array_data)) && $array_data['type'] == 'p')
+							$pitchprint = $array_data;
 				}
-				
-				$items[] = array(
-					'name' => $prod['product_name'],
-					'id' => $prod['product_id'],
-					'qty' => $prod['cart_quantity'],
-					'pitchprint' => json_encode($pitchprint)
-				);
 			}
 			
-			$pp_empty = true;
-			foreach ($items as $item) {
-				$ppItemDecoded = json_decode($item['pitchprint']);
-				if (!empty($ppItemDecoded)) $pp_empty = false;
-			}
-			if ($pp_empty) return;
-			
-			$items = json_encode($items);
-
-			$timestamp = time();
-			$pitchprint_api_value = Configuration::get(PITCHPRINT_API_KEY);
-			$pitchprint_secret_value = Configuration::get(PITCHPRINT_SECRET_KEY);
-			$signature = md5($pitchprint_api_value . html_entity_decode($pitchprint_secret_value) . $timestamp);
-
-			$body = array (
-				'products' => $items,
-				'client' => 'ps',
-				'billingEmail' => $customer->email,
-				'billingPhone' => $address->phone,
-				'shippingName' => $address->firstname . ' ' . $address->lastname,
-				'shippingAddress' => $address->company . ',\n' . $address->address1 . ',\n' . $address->address2 . ',\n' . $address->city . ',\n' . $address->postcode . ',\n' . $address->country,
-				'orderId' => $params['id_order'],
-				'customer' => $customer->id,
-				'apiKey' => $pitchprint_api_value,
-				'signature' => $signature,
-				'status' => $status,
-				'timestamp' => $timestamp,
-				'shop_id' => (int)Context::getContext()->shop->id
+			$items[] = array(
+				'name' => $prod['product_name'],
+				'id' => $prod['product_id'],
+				'qty' => $prod['cart_quantity'],
+				'pitchprint' => json_encode($pitchprint)
 			);
+		}
+		
+		$pp_empty = true;
+		foreach ($items as $item) {
+			$ppItemDecoded = json_decode($item['pitchprint']);
+			if (!empty($ppItemDecoded)) $pp_empty = false;
+		}
+		if ($pp_empty) return;
+		
+		$items = json_encode($items);
 
-			$ch = curl_init();
-			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-			curl_setopt($ch, CURLOPT_URL, "https://api.pitchprint.io/runtime/order-complete");
-			curl_setopt($ch, CURLOPT_POST, true);
-			curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
-			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-			curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+		$timestamp = time();
+		$pitchprint_api_value = Configuration::get(PITCHPRINT_API_KEY);
+		$pitchprint_secret_value = Configuration::get(PITCHPRINT_SECRET_KEY);
+		$signature = md5($pitchprint_api_value . html_entity_decode($pitchprint_secret_value) . $timestamp);
 
-			$output = curl_exec($ch);
-			$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-			$content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-			$curlerr = curl_error($ch);
-			curl_close($ch);
+		$body = array (
+			'products' => $items,
+			'client' => 'ps',
+			'billingEmail' => $customer->email,
+			'billingPhone' => $address->phone,
+			'shippingName' => $address->firstname . ' ' . $address->lastname,
+			'shippingAddress' => $address->company . ',\n' . $address->address1 . ',\n' . $address->address2 . ',\n' . $address->city . ',\n' . $address->postcode . ',\n' . $address->country,
+			'orderId' => $params['id_order'],
+			'customer' => $customer->id,
+			'apiKey' => $pitchprint_api_value,
+			'signature' => $signature,
+			'status' => $status,
+			'timestamp' => $timestamp,
+			'shop_id' => (int)Context::getContext()->shop->id
+		);
 
-			if ($curlerr && $http_status != 200) {
-				$error_message = array('error' => $curlerr);
-				error_log(print_r($error_message, true));
-			}
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($ch, CURLOPT_URL, "https://api.pitchprint.io/runtime/order-{$status}");
+		curl_setopt($ch, CURLOPT_POST, true);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($body));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+
+		$output = curl_exec($ch);
+		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+		$curlerr = curl_error($ch);
+		curl_close($ch);
+
+		if ($curlerr && $http_status != 200) {
+			$error_message = array('error' => $curlerr);
+			error_log(print_r($error_message, true));
 		}
 	}
 
