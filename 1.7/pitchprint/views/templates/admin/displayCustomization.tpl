@@ -3,7 +3,7 @@
         width: 90px;
     }
 </style>
-{if ($pp_customization.type != 'p')}
+{if ($pp_customization.type == 'p')}
     {foreach from=$pp_customization.previews key=k item=v}
         <a class="ppc-ps-img"><img src="{$v}" class="pp-90thumb" ></a>
     {/foreach}
