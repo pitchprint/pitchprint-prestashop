@@ -1,4 +1,4 @@
-{*
+/**
 * 2023 PitchPrint
 *
 * NOTICE OF LICENSE
@@ -21,15 +21,12 @@
 *  @copyright 2023 PitchPrint Inc
 *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PitchPrint Inc.
-*}
-<div class="pp-customization">
-{if ($pp_customization.type == 'p')}
-    {for $j=1 to $pp_customization.numPages}
-        <a class="ppc-ps-img"><img src="https://pitchprint.io/previews/{$pp_customization.projectId}_{$j}.jpg" class="pp-90thumb" ></a>
-    {/for}
-{else}
-    {foreach from=$pp_customization.previews key=k item=v}
-        <a class="ppc-ps-img"><img src="{$v}" class="pp-90thumb" ></a>
-    {/foreach}
-{/if}
-</div>
+*/
+(function() {
+	var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '9.0.0', readyFncs: [] };
+	PPADMIN.vars = {
+		
+	};
+	PPADMIN.readyFncs.push('init');
+	if (typeof PPADMIN.start !== 'undefined') PPADMIN.start();
+})();

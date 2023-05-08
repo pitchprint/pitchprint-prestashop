@@ -1,4 +1,5 @@
-{*
+<?php
+/**
 * 2023 PitchPrint
 *
 * NOTICE OF LICENSE
@@ -21,15 +22,11 @@
 *  @copyright 2023 PitchPrint Inc
 *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PitchPrint Inc.
-*}
-<div class="pp-customization">
-{if ($pp_customization.type == 'p')}
-    {for $j=1 to $pp_customization.numPages}
-        <a class="ppc-ps-img"><img src="https://pitchprint.io/previews/{$pp_customization.projectId}_{$j}.jpg" class="pp-90thumb" ></a>
-    {/for}
-{else}
-    {foreach from=$pp_customization.previews key=k item=v}
-        <a class="ppc-ps-img"><img src="{$v}" class="pp-90thumb" ></a>
-    {/foreach}
-{/if}
-</div>
+*/
+header('Expires: Mon, 26 Jul 1997 05:00:00 GMT');
+header('Last-Modified: ' . gmdate('D, d M Y H:i:s') . ' GMT');
+header('Cache-Control: no-store, no-cache, must-revalidate');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Location: ../');
+exit;
