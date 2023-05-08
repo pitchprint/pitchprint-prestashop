@@ -99,6 +99,7 @@ class PitchPrint extends Module
         return $this->registerHook('displayHeader') &&
         $this->registerHook('displayFooter') &&
         $this->registerHook('displayAdminOrder') &&
+        $this->registerHook('displayOrderConfirmation') &&
         $this->registerHook('displayBackOfficeHeader') &&
         $this->registerHook('actionProductUpdate') &&
         $this->registerHook('actionOrderStatusPostUpdate') &&
@@ -218,7 +219,71 @@ class PitchPrint extends Module
 
         return $html;
     }
+	
+	private function customGetCustomizations($id_cart, $only_in_cart = true, $id_customization) {
+        $id_shop = (int)Context::getContext()->shop->id;
+        $id_lang = Context::getContext()->language->id;
+        
+        if (!$result = Db::getInstance()->executeS('
+			SELECT cd.`id_customization`, c.`id_address_delivery`, c.`id_product`, cfl.`id_customization_field`, c.`id_product_attribute`,
+				cd.`type`, cd.`index`, cd.`value`, cd.`id_module`, cfl.`name`
+			FROM `'._DB_PREFIX_.'customized_data` cd
+			NATURAL JOIN `'._DB_PREFIX_.'customization` c
+			LEFT JOIN `'._DB_PREFIX_.'customization_field_lang` cfl ON (cfl.id_customization_field = cd.`index` AND id_lang = '.(int)$id_lang.
+                ($id_shop ? ' AND cfl.`id_shop` = '.(int)$id_shop : '').')
+			WHERE c.`id_cart` = '.(int)$id_cart.
+            ($only_in_cart ? ' AND c.`in_cart` = 1' : '').
+            ((int)$id_customization ? ' AND cd.`id_customization` = '.(int)$id_customization : '').'
+			ORDER BY `id_product`, `id_product_attribute`, `type`, `index`')) {
+            return false;
+        }
 
+        $customized_datas = array();
+
+        foreach ($result as $row)
+            if ((int)$row['id_module'] && (int)$row['type'] == Product::CUSTOMIZE_TEXTFIELD)
+                return $row;
+        return false;
+
+    }
+    
+    public function hookDisplayOrderConfirmation($params) {
+        $orderId = Order::getIdByCartId( (int) $params['order']->id_cart );
+        $products = $params['order']->getProducts();
+        
+        $projectIds = array();
+        
+        foreach($products as $product) {
+            $customized_datas = $this->customGetCustomizations($params['order']->id_cart , true, (int)$product['id_customization']);
+            if ($customized_datas && $customized_datas['name'] === PITCHPRINT_ID_CUSTOMIZATION_NAME) {
+                $value = json_decode(rawurldecode($customized_datas['value']), true);
+                $projectIds[] = $value['projectId'];
+            }
+        }
+
+        $secretKey = Configuration::get(PITCHPRINT_SECRET_KEY);
+		
+        $ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, "https://5968ew8yo3.execute-api.eu-west-1.amazonaws.com/prod/runtime/append-project-order-id");
+		curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, [
+            'Authorization: '. $secretKey
+        ]);
+		$opts =  array (
+		    'projectIds' => $projectIds,
+			'orderId' => $orderId
+		);
+		
+		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($opts));
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		
+		$output = curl_exec($ch);
+		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		$content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+		$curlerr = curl_error($ch);
+		curl_close($ch);
+    }
+    
     public function hookDisplayCustomization($params)
     {
         $params['customization']['name'] = '';
