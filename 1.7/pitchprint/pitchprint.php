@@ -597,7 +597,7 @@ class PitchPrint extends Module
                 );
 
                 $this->context->controller->registerJavascript(
-                    'module-pitchprint-product-buttons',
+                    'module-pitchprint-product-buttons-new',
                     'modules/' . $this->name . '/views/js/client.js',
                     ['position' => 'bottom', 'priority' => 203]
                 );
