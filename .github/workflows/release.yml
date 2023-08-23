@@ -45,7 +45,7 @@ jobs:
           branch: master
       
       - name: Create asset
-        run: zip ../pitchprint.zip ./8/* -r 
+        run: zip ../pitchprint.zip ./8/pitchprint/* -r 
       
       - name: Release
         uses: softprops/action-gh-release@v1
