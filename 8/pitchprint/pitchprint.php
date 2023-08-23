@@ -599,7 +599,7 @@ class PitchPrint extends Module
         }
     }
 
-// Admin functions =====================================================================================
+    // Admin functions =====================================================================================
 
     public function hookDisplayBackOfficeHeader($params)
     {
