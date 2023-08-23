@@ -19,7 +19,6 @@ jobs:
       - name: Run composer install
         uses: baschny/php-composer-action@v1
         with:
-          composer_version: ${{ env.COMPOSER_VERSION }}
           command: install
           #github_oauth: ${{ secret.GITHUB_OAUTH }}
     
