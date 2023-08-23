@@ -47,7 +47,7 @@ jobs:
       - name: Create asset
         run: zip ../pitchprint.zip ./8/* -r 
       
-       - name: Release
+      - name: Release
         uses: softprops/action-gh-release@v1
         with:
           body_path: "CHANGELOG.txt"
