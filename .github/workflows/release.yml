@@ -16,6 +16,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
   
+      - name: Show files in CWD
+        run: ls
+        
       - name: Run composer install
         uses: baschny/php-composer-action@v1
         with:
