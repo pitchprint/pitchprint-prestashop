@@ -31,20 +31,25 @@ jobs:
           
       - name: Apply Coding Standards
         run: php vendor/bin/php-cs-fixer fix 8/pitchprint
+        
+      - name: Cleanup before commit
+        run: |
+          rm -rf vendor
+          rm -f .php-cs-fixer.cache
+          rm -f composer.lock
       
       - name: Commit the version updates
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           commit_message: Apply Prestashop Php coding standard
           branch: master
-      # - name: Just checking
-      #   run: echo 
-      # - name: Checkout
-      # - name: Create asset
-      #   run: cd .. && zip testBump.zip testBump/* -r && cd testBump/
-      # - name: Release
-      #   uses: softprops/action-gh-release@v1
-      #   with:
-      #     body_path: "CHANGELOG.txt"
-      #     name: "Print.App - PrestaShop 1.7.x - ${{ github.ref_name }}"
-      #     files: "../testBump.zip"
+      
+      - name: Create asset
+        run: zip ../pitchprint.zip ./8/* -r 
+      
+       - name: Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: "CHANGELOG.txt"
+          name: "PitchPrint - PrestaShop 8 or 1.7 - ${{ github.ref_name }}"
+          files: "../pitchprint.zip"
