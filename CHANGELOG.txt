@@ -1,0 +1,1 @@
+Tested PitchPrint with Prestashop 8.
