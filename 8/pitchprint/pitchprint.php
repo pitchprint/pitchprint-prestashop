@@ -401,6 +401,11 @@ class PitchPrint extends Module
 					)"
                 );
 
+                if (!$this->context->cart->id && isset($_COOKIE[$this->context->cookie->getName()])) {
+                    $this->context->cart->add();
+                    $this->context->cookie->id_cart = (int) $this->context->cart->id;
+                }
+                
                 $customization_datas = $this->context->cart->getProductCustomization($productId, null, true);
                 $pp_values = $customization_datas;
 
