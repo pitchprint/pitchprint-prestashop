@@ -56,7 +56,7 @@ class PitchPrint extends Module
         $this->name = 'pitchprint';
         $this->module_key = 'bef92b980b5301cad2ccce8d8b87b6da';
         $this->tab = 'front_office_features';
-        $this->version = '10.0.6';
+        $this->version = '10.0.2';
         $this->author = 'PitchPrint Inc.';
         $this->need_instance = 1;
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
@@ -756,6 +756,8 @@ class PitchPrint extends Module
             $id_product = (int) $params['id_product'];
 
             $p_designs = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
+            if (!$p_designs)
+                $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
             $p_designs[$id_product] = $pp_pick;
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, json_encode($p_designs));
         }
