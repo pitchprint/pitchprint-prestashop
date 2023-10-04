@@ -1,1 +1,2 @@
-Fixed No Cart Id issue, if there is no cart ID then projects may be shared with other customers who also have no cart ID.
+Added get order and design the old way if new way returns nothing.
+Also store old designs the new way.
