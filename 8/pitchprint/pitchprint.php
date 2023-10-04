@@ -56,7 +56,7 @@ class PitchPrint extends Module
         $this->name = 'pitchprint';
         $this->module_key = 'bef92b980b5301cad2ccce8d8b87b6da';
         $this->tab = 'front_office_features';
-        $this->version = '10.0.2';
+        $this->version = '10.0.6';
         $this->author = 'PitchPrint Inc.';
         $this->need_instance = 1;
         $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
@@ -114,11 +114,11 @@ class PitchPrint extends Module
         $this->registerHook('displayCustomization') &&
         $this->registerHook('displayCustomerAccount') &&
         $this->registerHook('displayAdminOrderSide') &&
+        $this->registerHook('displayAdminOrderRight') &&
         $this->registerHook('actionCartUpdateQuantityBefore');
     }
 
-    public function hookDisplayAdminOrderSide($params)
-    {
+    private function updateProducts($params) {
         $order = new Order((int) $params['id_order']);
         $products = $order->getCartProducts();
 
@@ -126,13 +126,60 @@ class PitchPrint extends Module
             if ($row['id_customization']) {
                 $request = 'SELECT `value` FROM `' . _DB_PREFIX_ . PITCHPRINT_TABLE_NAME . "` WHERE `cId` = {$row['id_customization']}";
                 $raw = Db::getInstance()->getValue($request);
-                $row['pitchprint_customization'] = json_decode(urldecode($raw));
+                
+                if($raw)
+                    $row['pitchprint_customization'] = json_decode(urldecode($raw));
+                else {
+                    $data_in = Db::getInstance()->executeS('SELECT `value` FROM `' . _DB_PREFIX_ . 'customized_data` WHERE
+    					`id_customization` =' . $row['id_customization']);
+    
+                    foreach ($data_in as $data_item) {
+                        $array_data = (array) json_decode(rawurldecode($data_item['value']));
+    
+                        if (is_array($array_data)
+                            && count(array_keys($array_data))
+                                && in_array('type', array_keys($array_data)) && $array_data['type'] == 'p') {
+                            $row['pitchprint_customization'] = $array_data;
+                        }
+                    }
+                }
+                
+                if ($row['pitchprint_customization']) {
+                    $row['pitchprint_customization']['links'] = [];
+                    if ( strpos($row['pitchprint_customization']['distiller'], 'io') !== false ) {
+                        $row['pitchprint_customization']['links']['pdf'] 
+                          = $row['pitchprint_customization']['distiller'] . '?id=' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['jpg'] 
+                          = $row['pitchprint_customization']['distiller'] . '?raster=1&jpeg=1&id=' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['png'] 
+                          = $row['pitchprint_customization']['distiller'] . '?raster=1&id=' . $row['pitchprint_customization']['projectId'];
+                    } else {
+                        $row['pitchprint_customization']['links']['pdf'] 
+                          = $row['pitchprint_customization']['distiller'] . '/' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['png'] 
+                          = 'https://png.pitchprint.com' . '/' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['jpg'] 
+                          = 'https://jpeg.pitchprint.com' . '/' . $row['pitchprint_customization']['projectId'];
+                    }
+                }
             }
         }
-
+        return $products;
+    }
+    public function hookDisplayAdminOrderSide($params)
+    {
+        $products = $this->updateProducts($params);
         return $this->get('twig')->render('@Modules/pitchprint/views/templates/admin/displayCustomization.twig', [
             'products' => $products,
         ]);
+    }
+    public function hookDisplayAdminOrderRight($params)
+    {
+        $products = $this->updateProducts($params);
+        $smarty = new Smarty();
+        $smarty->assign('products', $products);
+        $html = $smarty->fetch(__DIR__ . '/views/templates/admin/displayCustomization.tpl');
+        return $html;
     }
 
     private function serveDesignIds()
@@ -623,11 +670,16 @@ class PitchPrint extends Module
         $id_product = (int) $params['id_product'];
         if (Validate::isLoadedObject($product = new Product($id_product))) {
             $pp_val = '';
-            $p_designs = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
+            $pp_designs = Configuration::get(PITCHPRINT_P_DESIGNS);
+            if ($pp_designs) {
+                $p_designs = json_decode($pp_designs, true);
+                if (!$p_designs) $p_designs = unserialize($pp_designs);
+            }
+            
             if (!empty($p_designs[$id_product])) {
                 $pp_val = $p_designs[$id_product];
             }
-
+            
             $indexval = Db::getInstance()->getValue('SELECT `id_customization_field` FROM `' . _DB_PREFIX_ . 'customization_field` WHERE `id_product` = ' . (int) Tools::getValue('id_product') . ' AND `type` = 1  AND `is_module` = 1');
             //			$indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = " . $id_product . " AND `type` = 1 ");
 
@@ -652,6 +704,7 @@ class PitchPrint extends Module
                 'current_display_opt' => $current_display_opt,
                 'PPADMIN_DEF' => PPADMIN_DEF,
                 'pp_val' => $pp_val,
+                'current_p_val' => isset($pp_data_params) ? $pp_data_params[0] : '0',
                 'indexval' => $indexval,
             ]);
 
@@ -695,7 +748,7 @@ class PitchPrint extends Module
 
     public function hookActionProductUpdate($params)
     {
-        $pp_pick = (string) Tools::getValue('ppa_values');
+        $pp_pick = (string) Tools::getValue('ppa_new_values');
         if (!empty($pp_pick) && $pp_pick != '') {
             $id_product = (int) $params['id_product'];
 
