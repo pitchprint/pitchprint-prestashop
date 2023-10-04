@@ -756,8 +756,9 @@ class PitchPrint extends Module
             $id_product = (int) $params['id_product'];
 
             $p_designs = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
-            if (!$p_designs)
+            if (!$p_designs) {
                 $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
+            }
             $p_designs[$id_product] = $pp_pick;
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, json_encode($p_designs));
         }
