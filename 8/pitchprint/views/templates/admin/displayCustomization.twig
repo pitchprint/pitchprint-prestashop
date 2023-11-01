@@ -59,9 +59,9 @@
                     <img src="https://pitchprint.io/previews/{{ product.pitchprint_customization.projectId }}_1.jpg" width="120px"/>
                 </td>
                 <td  class="border-top-0 text-muted">
-                   <div><a target="_blank" href="{{ product.pitchprint_customization.distiller  }}/{{ product.pitchprint_customization.projectId }}">Download PDF</div>
-                   <div><a target="_blank" href="{{ product.pitchprint_customization.distiller  }}/{{ product.pitchprint_customization.projectId }}">Download PNG</div>
-                   <div><a target="_blank" href="{{ product.pitchprint_customization.distiller  }}/{{ product.pitchprint_customization.projectId }}">Download JPEG</div>
+                   <div><a target="_blank" href="{{ product.pitchprint_customization.links.pdf }}">Download PDF</div>
+                   <div><a target="_blank" href="{{ product.pitchprint_customization.links.png }}">Download PNG</div>
+                   <div><a target="_blank" href="{{ product.pitchprint_customization.links.jpg }}">Download JPEG</div>
                 </td>
               </tr>
             {% endif %}
