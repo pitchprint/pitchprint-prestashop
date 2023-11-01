@@ -146,8 +146,9 @@ class PitchPrint extends Module
                 }
 
                 if ($row['pitchprint_customization']) {
-		    if (gettype($row['pitchprint_customization']) === 'object')
-			    $row['pitchprint_cusotmization'] = json_decode(json_encode($row['pitchprint_customization']),true);
+                    if (gettype($row['pitchprint_customization']) === 'object') {
+                        $row['pitchprint_cusotmization'] = json_decode(json_encode($row['pitchprint_customization']), true);
+                    }
                     $row['pitchprint_customization']['links'] = [];
                     if (strpos($row['pitchprint_customization']['distiller'], 'io') !== false) {
                         $row['pitchprint_customization']['links']['pdf']
