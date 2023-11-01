@@ -146,6 +146,8 @@ class PitchPrint extends Module
                 }
 
                 if ($row['pitchprint_customization']) {
+		    if (gettype($row['pitchprint_customization']) === 'object')
+			    $row['pitchprint_cusotmization'] = json_decode(json_encode($row['pitchprint_customization']),true);
                     $row['pitchprint_customization']['links'] = [];
                     if (strpos($row['pitchprint_customization']['distiller'], 'io') !== false) {
                         $row['pitchprint_customization']['links']['pdf']
@@ -253,12 +255,12 @@ class PitchPrint extends Module
                 'index' => $indexval,
                 'value' => Db::getInstance()->escape($open_values->projectId),
                 'id_module' => $this->id,
-            ]);
+            ], false, true, Db::INSERT_IGNORE);
             // Then store full detail in our table
             $db->insert(PITCHPRINT_TABLE_NAME, [
                 'cId' => $cCid[0]['id_customization'],
                 'value' => Db::getInstance()->escape($pp_values),
-            ]);
+            ], false, true, Db::INSERT_IGNORE);
 
             // Store pp_project in session cookie
             if (isset(Context::getContext()->cookie->pp_projects)) {
