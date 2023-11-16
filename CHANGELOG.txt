@@ -1,2 +1,1 @@
-Added get order and design the old way if new way returns nothing.
-Also store old designs the new way.
+Fixed a bug in the cart, where JSON was html encoded and could not parse properly.

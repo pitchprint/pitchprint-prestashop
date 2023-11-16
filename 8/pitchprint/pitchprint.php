@@ -147,7 +147,7 @@ class PitchPrint extends Module
 
                 if ($row['pitchprint_customization']) {
                     if (gettype($row['pitchprint_customization']) === 'object') {
-                        $row['pitchprint_cusotmization'] = json_decode(json_encode($row['pitchprint_customization']), true);
+                        $row['pitchprint_customization'] = json_decode(json_encode($row['pitchprint_customization']), true);
                     }
                     $row['pitchprint_customization']['links'] = [];
                     if (strpos($row['pitchprint_customization']['distiller'], 'io') !== false) {
@@ -649,9 +649,17 @@ class PitchPrint extends Module
                 'afterValidation' => ($this->context->controller->php_self === 'my-account' ? '_fetchProjects' : '_sortCart'),
             ];
 
-            $this->context->smarty->assign(['ppData' => $ppData]);
-
-            return $this->display(__DIR__, '/views/templates/front/ppCartData.tpl');
+            Media::addJsDef(
+                [
+                    'pitchprintCartData' => $ppData,
+                ]
+            );
+            
+            $this->context->controller->registerJavascript(
+                'module-pitchprint-cart-data',
+                'modules/' . $this->name . '/views/js/cartData.js',
+                ['position' => 'bottom', 'priority' => 199]
+            );
         }
     }
 

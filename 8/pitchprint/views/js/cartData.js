@@ -1,4 +1,4 @@
-{*
+/**
 * 2023 PitchPrint
 *
 * NOTICE OF LICENSE
@@ -21,7 +21,5 @@
 *  @copyright 2023 PitchPrint Inc
 *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PitchPrint Inc.
-*}
-<script type="text/javascript">	
-var pp_data = {$ppData|json_encode}
-</script>
+*/
+var pp_data = pitchprintCartData;
