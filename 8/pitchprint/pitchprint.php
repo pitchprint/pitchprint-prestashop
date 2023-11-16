@@ -654,7 +654,7 @@ class PitchPrint extends Module
                     'pitchprintCartData' => $ppData,
                 ]
             );
-            
+
             $this->context->controller->registerJavascript(
                 'module-pitchprint-cart-data',
                 'modules/' . $this->name . '/views/js/cartData.js',
