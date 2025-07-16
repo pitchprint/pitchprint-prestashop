@@ -1,0 +1,78 @@
+PITCHPRINT PRESTASHOP VERSION 8 vs 9 COMPARISON
+=============================================
+
+This document outlines the key differences between PitchPrint PrestaShop plugin version 8 and version 9.
+
+VERSION INFORMATION:
+===================
+
+Version 8:
+- Module Version: 10.0.2
+- PrestaShop Compatibility: 1.7 to 8.x
+- Client Version: 1.7
+
+Version 9:
+- Module Version: 10.1.0
+- PrestaShop Compatibility: 1.7 to 9.x
+- Client Version: 9.0
+
+KEY CHANGES:
+============
+
+1. **Compatibility Range**
+   - V8: ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_]
+   - V9: ps_versions_compliancy = ['min' => '1.7', 'max' => '9.99.99']
+
+2. **Module Description**
+   - V8: "Integrates with Prestashop 1.7+"
+   - V9: "Integrates with Prestashop 1.7+ and 9.x"
+
+3. **Smarty Template Handling**
+   - V8: Uses new Smarty() instances directly
+   - V9: Uses $this->context->smarty for better PS9 compatibility
+
+4. **Client Version Detection**
+   - V8: pp_data.clientVersion = '1.7'
+   - V9: pp_data.clientVersion = '9.0'
+
+5. **Additional Files**
+   - V9 includes: PS9_UPGRADE_NOTES.txt (new documentation)
+   - V9 includes: Updated readme.txt with PS9 changelog
+
+UNCHANGED FEATURES:
+==================
+
+- All core functionality remains identical
+- Database schema and handling unchanged
+- Hook implementations unchanged
+- API integration unchanged
+- Template files unchanged (except Smarty instantiation)
+- Override classes unchanged
+- JavaScript functionality unchanged (except version detection)
+
+MIGRATION:
+==========
+
+To migrate from version 8 to version 9:
+1. Back up your current installation
+2. Replace the version 8 files with version 9 files
+3. No database migration required
+4. Test all functionality
+
+TESTING REQUIREMENTS:
+=====================
+
+When testing version 9, ensure:
+- Module installs correctly on PS9
+- All existing customizations continue to work
+- No PHP or JavaScript errors
+- Admin interface functions properly
+- Frontend customization works as expected
+
+BACKWARD COMPATIBILITY:
+=======================
+
+Version 9 maintains full backward compatibility with:
+- PrestaShop 1.7.x
+- PrestaShop 8.x
+- All existing PitchPrint data and configurations

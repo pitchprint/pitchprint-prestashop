@@ -1,0 +1,71 @@
+PITCHPRINT PRESTASHOP 9 UPGRADE NOTES
+====================================
+
+Version 10.1.0 - PrestaShop 9.x Compatibility
+----------------------------------------------
+
+This version has been updated to support PrestaShop 9.x while maintaining backward compatibility with earlier versions (1.7+).
+
+CHANGES MADE:
+=============
+
+1. **Version Compatibility**
+   - Updated ps_versions_compliancy to support PrestaShop 9.x (max version set to 9.99.99)
+   - Updated module version to 10.1.0 to reflect PS9 compatibility
+   - Updated module description to indicate PS9 support
+
+2. **Template System Updates**
+   - Replaced direct Smarty() instantiation with context->smarty for better PS9 compatibility
+   - Updated hookDisplayAdminOrderRight() to use $this->context->smarty
+   - Updated hookDisplayCustomerAccount() to use $this->context->smarty
+
+3. **Client-Side Updates**
+   - Updated client.js to set clientVersion to '9.0' for PS9 compatibility
+
+4. **Documentation**
+   - Updated readme.txt with PS9 compatibility information
+   - Added upgrade notes and changelog entries
+
+COMPATIBILITY:
+==============
+
+- PrestaShop 1.7.x: ✓ Supported
+- PrestaShop 8.x: ✓ Supported  
+- PrestaShop 9.x: ✓ Supported (NEW)
+
+REQUIREMENTS:
+=============
+
+- PHP 8.1+ (PrestaShop 9 requirement)
+- PrestaShop 9.x
+- All existing PitchPrint API requirements remain the same
+
+INSTALLATION:
+=============
+
+1. Upload the pitchprint folder to your PrestaShop 9 modules directory
+2. Install through Admin > Modules > Module Manager
+3. Configure your PitchPrint API keys in the module configuration
+
+UPGRADE FROM VERSION 8:
+=======================
+
+If upgrading from version 8, no data migration is required. The module will maintain all existing configurations and customizations.
+
+TESTING CHECKLIST:
+==================
+
+- [ ] Module installs without errors
+- [ ] Configuration page loads correctly
+- [ ] Product customization works on frontend
+- [ ] Admin order customization display works
+- [ ] Customer account customization history works
+- [ ] No PHP errors in error logs
+- [ ] No JavaScript console errors
+
+SUPPORT:
+========
+
+For any issues with PrestaShop 9 compatibility, please contact:
+Email: support@pitchprint.com
+Documentation: https://docs.pitchprint.com

@@ -26,14 +26,14 @@
     <div style="padding: 20px" class="panel product-tab">
         <h3>Assign PitchPrint Design</h3>
         <div class="alert alert-info">
-            You can create your designs at <a target="_blank" href="https://admin.pitchprint.com/designs">https://admin.pitchprint.com/designs</a> 
+            You can create your designs at <a target="_blank" href="https://admin.pitchprint.io/designs">https://admin.pitchprint.io/designs</a> 
         </div>
         <div id="w2p-div">
             <div style="margin-bottom:10px">
-                <select id="ppa_pick" name="ppa_pick" style="width:300px;" class="c-select form-control" >
+                <select id="ppa_pick" name="ppa_pick" style="width:300px;" class="c-select form-control" value={$current_p_val}>
                     <option style="color:#aaa" value="0">Loading..</option>
                 </select>
-                <input type="hidden" id="ppa_values" name="ppa_values" value="{$pp_val}" />
+                <input type="hidden" id="ppa_new_values" name="ppa_new_values" value="{$pp_val}" />
                 <input type="hidden" id="pp_indexVal" name="pp_indexVal" value="{$indexval}" />
     
                 <select id="ppa_pick_display_mode" name="ppa_pick_display_mode" 
@@ -53,7 +53,7 @@
                 	displayMode.change(_updatePpOptions);
                 	
                 	function _updatePpOptions () {
-                		var ppOptions = jQuery("#ppa_values");
+                		var ppOptions = jQuery("#ppa_new_values");
                 		var a = ppOptions.val().split(":");
                 		a[3] = displayMode.val();
                 		ppOptions.val(a.join(":"));	 
@@ -62,9 +62,9 @@
                 })();
                 </script>
             </div>
-        <div class="checkbox" style="margin-bottom:10px">
-            <label for="ppa_pick_upload"> <input type="checkbox" name="ppa_pick_upload" id="ppa_pick_upload" value="">Enable clients upload their files.</label>
-        </div>
+        <!--<div class="checkbox" style="margin-bottom:10px">
+        <label for="ppa_pick_upload"> <input type="checkbox" name="ppa_pick_upload" id="ppa_pick_upload" value="">Enable clients upload their files.</label>
+        </div>-->
             <div class="checkbox">
                 <label for="ppa_pick_hide_cart_btn"> <input type="checkbox" name="ppa_pick_hide_cart_btn" id="ppa_pick_hide_cart_btn" value="">Required.</label>
             </div>

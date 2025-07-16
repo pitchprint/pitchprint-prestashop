@@ -22,6 +22,12 @@
 *  @copyright 2023 PrestaShop SA
 *  @license   http://opensource.org/licenses/afl-3.0.php  Academic Free License (AFL 3.0)
 *  International Registered Trademark & Property of PitchPrint Inc.
+*  
+*  Version 10.1.0 - Updated for PrestaShop 9.x compatibility
+*  - Updated ps_versions_compliancy to support PS9
+*  - Updated Smarty template handling to use context->smarty
+*  - Updated client version detection for PS9
+*  - Updated module description to reflect PS9 support
 */
 if (!defined('_PS_VERSION_')) {
     exit;
@@ -35,16 +41,16 @@ define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
 
 define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
 
-define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '9.0.0', readyFncs: [] };");
+define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '10.0.0', readyFncs: [] };");
 define('PP_VERSION', '10.0.0');
 
 define('PITCHPRINT_API_KEY', 'pitchprint_API_KEY');
 define('PITCHPRINT_SECRET_KEY', 'pitchprint_SECRET_KEY');
-define('PITCHPRINT_CATEGORY_CUSTOMIZATION', 'pitchprint_CATEGORY_CUSTOMIZATION');
 
 define('PITCHPRINT_P_DESIGNS', 'pitchprint_p_designs');
 
 define('PITCHPRINT_ID_CUSTOMIZATION_NAME', 'PitchPrint');
+define('PITCHPRINT_TABLE_NAME', 'pitch_pa_customization_values');
 
 define('MAGNIFIC_JS', '//dta8vnpq1ae34.cloudfront.net/javascripts/jquery.magnific-popup.min.js');
 define('MAGNIFIC_CSS', '//dta8vnpq1ae34.cloudfront.net/stylesheets/magnific-popup.css');
@@ -56,15 +62,15 @@ class PitchPrint extends Module
         $this->name = 'pitchprint';
         $this->module_key = 'bef92b980b5301cad2ccce8d8b87b6da';
         $this->tab = 'front_office_features';
-        $this->version = '10.0.2';
+        $this->version = '10.1.0';
         $this->author = 'PitchPrint Inc.';
         $this->need_instance = 1;
-        $this->ps_versions_compliancy = ['min' => '1.7', 'max' => _PS_VERSION_];
+        $this->ps_versions_compliancy = ['min' => '1.7', 'max' => '9.99.99'];
 
         parent::__construct();
 
         $this->displayName = $this->l('PitchPrint');
-        $this->description = $this->l('A beautiful web based print customization app for your online store. Integrates with Prestashop 1.7+');
+        $this->description = $this->l('A beautiful web based print customization app for your online store. Integrates with Prestashop 1.7+ and 9.x');
         $this->confirmUninstall = $this->l('Are you sure you want to uninstall?');
 
         $this->clearCustomization();
@@ -96,17 +102,93 @@ class PitchPrint extends Module
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, json_encode([]));
         }
 
+        // Create table
+        $sql = 'CREATE TABLE IF NOT EXISTS `' . _DB_PREFIX_ . PITCHPRINT_TABLE_NAME . '`
+            (
+                cId INT NOT NULL PRIMARY KEY,
+                value TEXT NOT NULL
+            )';
+
+        $db = Db::getInstance()->execute($sql);
+
         return $this->registerHook('displayHeader') &&
-        $this->registerHook('displayFooter') &&
         $this->registerHook('displayAdminOrder') &&
-        $this->registerHook('displayOrderConfirmation') &&
         $this->registerHook('displayBackOfficeHeader') &&
         $this->registerHook('actionProductUpdate') &&
         $this->registerHook('actionOrderStatusPostUpdate') &&
         $this->registerHook('displayAdminProductsExtra') &&
         $this->registerHook('displayCustomization') &&
         $this->registerHook('displayCustomerAccount') &&
+        $this->registerHook('displayAdminOrderSide') &&
+        $this->registerHook('displayAdminOrderRight') &&
         $this->registerHook('actionCartUpdateQuantityBefore');
+    }
+
+    private function updateProducts($params)
+    {
+        $order = new Order((int) $params['id_order']);
+        $products = $order->getCartProducts();
+
+        foreach ($products as &$row) {
+            if ($row['id_customization']) {
+                $request = 'SELECT `value` FROM `' . _DB_PREFIX_ . PITCHPRINT_TABLE_NAME . "` WHERE `cId` = {$row['id_customization']}";
+                $raw = Db::getInstance()->getValue($request);
+
+                if($raw) {
+                    $row['pitchprint_customization'] = json_decode(urldecode($raw));
+                } else {
+                    $data_in = Db::getInstance()->executeS('SELECT `value` FROM `' . _DB_PREFIX_ . 'customized_data` WHERE
+    					`id_customization` =' . $row['id_customization']);
+
+                    foreach ($data_in as $data_item) {
+                        $array_data = (array) json_decode(rawurldecode($data_item['value']));
+
+                        if (is_array($array_data)
+                            && count(array_keys($array_data))
+                                && in_array('type', array_keys($array_data)) && $array_data['type'] == 'p') {
+                            $row['pitchprint_customization'] = $array_data;
+                        }
+                    }
+                }
+
+                if ($row['pitchprint_customization']) {
+                    if (gettype($row['pitchprint_customization']) === 'object') {
+                        $row['pitchprint_customization'] = json_decode(json_encode($row['pitchprint_customization']), true);
+                    }
+                    $row['pitchprint_customization']['links'] = [];
+                    if (strpos($row['pitchprint_customization']['distiller'], 'io') !== false) {
+                        $row['pitchprint_customization']['links']['pdf']
+                          = $row['pitchprint_customization']['distiller'] . '?id=' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['jpg']
+                          = $row['pitchprint_customization']['distiller'] . '?raster=1&jpeg=1&id=' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['png']
+                          = $row['pitchprint_customization']['distiller'] . '?raster=1&id=' . $row['pitchprint_customization']['projectId'];
+                    } else {
+                        $row['pitchprint_customization']['links']['pdf']
+                          = $row['pitchprint_customization']['distiller'] . '/' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['png']
+                          = 'https://png.pitchprint.com' . '/' . $row['pitchprint_customization']['projectId'];
+                        $row['pitchprint_customization']['links']['jpg']
+                          = 'https://jpeg.pitchprint.com' . '/' . $row['pitchprint_customization']['projectId'];
+                    }
+                }
+            }
+        }
+        return $products;
+    }
+    public function hookDisplayAdminOrderSide($params)
+    {
+        $products = $this->updateProducts($params);
+        return $this->get('twig')->render('@Modules/pitchprint/views/templates/admin/displayCustomization.twig', [
+            'products' => $products,
+        ]);
+    }
+    public function hookDisplayAdminOrderRight($params)
+    {
+        $products = $this->updateProducts($params);
+        $this->context->smarty->assign('products', $products);
+        $html = $this->context->smarty->fetch(__DIR__ . '/views/templates/admin/displayCustomization.tpl');
+        return $html;
     }
 
     private function serveDesignIds()
@@ -167,17 +249,24 @@ class PitchPrint extends Module
             }
 
             // Add shop id
-            $pp_values = json_decode(urldecode($pp_values));
-            $pp_values->shop_id = (int) Context::getContext()->shop->id;
-            $pp_values = urlencode(json_encode($pp_values));
+            $open_values = json_decode(urldecode($pp_values));
+            $open_values->shop_id = (int) Context::getContext()->shop->id;
+            $pp_values = urlencode(json_encode($open_values));
 
-            Db::getInstance()->insert('customized_data', [
+            // Store projectId in core table
+            $db = Db::getInstance();
+            $db->insert('customized_data', [
                 'id_customization' => $cCid[0]['id_customization'],
                 'type' => 1,
                 'index' => $indexval,
-                'value' => Db::getInstance()->escape($pp_values),
+                'value' => Db::getInstance()->escape($open_values->projectId),
                 'id_module' => $this->id,
-            ]);
+            ], false, true, Db::INSERT_IGNORE);
+            // Then store full detail in our table
+            $db->insert(PITCHPRINT_TABLE_NAME, [
+                'cId' => $cCid[0]['id_customization'],
+                'value' => Db::getInstance()->escape($pp_values),
+            ], false, true, Db::INSERT_IGNORE);
 
             // Store pp_project in session cookie
             if (isset(Context::getContext()->cookie->pp_projects)) {
@@ -214,94 +303,21 @@ class PitchPrint extends Module
 
     public function hookDisplayCustomerAccount($params)
     {
-        $smarty = new Smarty();
-        $html = $smarty->fetch(__DIR__ . '/views/templates/front/displayCustomerAccount.tpl');
+        $html = $this->context->smarty->fetch(__DIR__ . '/views/templates/front/displayCustomerAccount.tpl');
 
         return $html;
     }
-	
-	private function customGetCustomizations($id_cart, $only_in_cart = true, $id_customization) {
-        $id_shop = (int)Context::getContext()->shop->id;
-        $id_lang = Context::getContext()->language->id;
-        
-        if (!$result = Db::getInstance()->executeS('
-			SELECT cd.`id_customization`, c.`id_address_delivery`, c.`id_product`, cfl.`id_customization_field`, c.`id_product_attribute`,
-				cd.`type`, cd.`index`, cd.`value`, cd.`id_module`, cfl.`name`
-			FROM `'._DB_PREFIX_.'customized_data` cd
-			NATURAL JOIN `'._DB_PREFIX_.'customization` c
-			LEFT JOIN `'._DB_PREFIX_.'customization_field_lang` cfl ON (cfl.id_customization_field = cd.`index` AND id_lang = '.(int)$id_lang.
-                ($id_shop ? ' AND cfl.`id_shop` = '.(int)$id_shop : '').')
-			WHERE c.`id_cart` = '.(int)$id_cart.
-            ($only_in_cart ? ' AND c.`in_cart` = 1' : '').
-            ((int)$id_customization ? ' AND cd.`id_customization` = '.(int)$id_customization : '').'
-			ORDER BY `id_product`, `id_product_attribute`, `type`, `index`')) {
-            return false;
-        }
 
-        $customized_datas = array();
-
-        foreach ($result as $row)
-            if ((int)$row['id_module'] && (int)$row['type'] == Product::CUSTOMIZE_TEXTFIELD)
-                return $row;
-        return false;
-
-    }
-    
-    public function hookDisplayOrderConfirmation($params) {
-        $orderId = Order::getIdByCartId( (int) $params['order']->id_cart );
-        $products = $params['order']->getProducts();
-        
-        $projectIds = array();
-        
-        foreach($products as $product) {
-            $customized_datas = $this->customGetCustomizations($params['order']->id_cart , true, (int)$product['id_customization']);
-            if ($customized_datas && $customized_datas['name'] === PITCHPRINT_ID_CUSTOMIZATION_NAME) {
-                $value = json_decode(rawurldecode($customized_datas['value']), true);
-                $projectIds[] = $value['projectId'];
-            }
-        }
-
-        $secretKey = Configuration::get(PITCHPRINT_SECRET_KEY);
-		
-        $ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, "https://5968ew8yo3.execute-api.eu-west-1.amazonaws.com/prod/runtime/append-project-order-id");
-		curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, [
-            'Authorization: '. $secretKey
-        ]);
-		$opts =  array (
-		    'projectIds' => $projectIds,
-			'orderId' => $orderId
-		);
-		
-		curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($opts));
-		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-		
-		$output = curl_exec($ch);
-		$http_status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$content_type = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-		$curlerr = curl_error($ch);
-		curl_close($ch);
-    }
-    
     public function hookDisplayCustomization($params)
     {
-        $params['customization']['name'] = '';
-        $value = json_decode(rawurldecode($params['customization']['value']), true);
-        $value['ioBase'] = PP_IOBASE;
         $current_context = Context::getContext();
         if ($current_context->controller->controller_type == 'front') {
-            $this->smarty->assign('pp_customization', $value);
+            $this->smarty->assign('pp_customization_project_id', $params['customization']['value']);
 
             return $this->fetch('module:pitchprint/views/templates/front/displayCustomization.tpl');
         }
 
-        $smarty = new Smarty();
-        $smarty->assign('pp_customization', $value);
-        $smarty->assign('raw_pp_customization', $params['customization']['value']);
-        $html = $smarty->fetch(__DIR__ . '/views/templates/admin/displayCustomization.tpl');
-
-        return $html;
+        return "Project ID: {$params['customization']['value']}";
     }
 
     public function hookActionOrderStatusPostUpdate($params)
@@ -415,20 +431,6 @@ class PitchPrint extends Module
 
     public function hookDisplayHeader($params)
     {
-        if ($this->context->controller->php_self === 'category'
-          && Configuration::get(PITCHPRINT_CATEGORY_CUSTOMIZATION)) {
-            $this->context->controller->registerJavascript(
-                'pp-client-js',
-                PP_CLIENT_JS,
-                ['server' => 'remote', 'position' => 'head', 'priority' => 200]
-            );
-            $this->context->controller->registerJavascript(
-                'category-pitchprint-product-buttons',
-                PP_CAT_CLIENT_JS,
-                ['server' => 'remote', 'position' => 'bottom', 'priority' => 203]
-            );
-        }
-
         if ($this->context->controller->php_self === 'product') {
             $productId = (int) Tools::getValue('id_product');
             $pp_design_options = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
@@ -439,8 +441,10 @@ class PitchPrint extends Module
             // Load product object
             $product = new Product($productId, false, $lang_id);
 
+            $db = Db::getInstance();
+
             if (isset($pp_design_options[$productId])) {
-                $indexval = Db::getInstance()->getValue(
+                $indexval = $db->getValue(
                     'SELECT `id_customization_field` FROM `' . _DB_PREFIX_ . "customization_field` 
 					WHERE `id_product` = {$productId} 
 					AND `type` = 1  
@@ -456,7 +460,7 @@ class PitchPrint extends Module
                     $this->context->cart->add();
                     $this->context->cookie->id_cart = (int) $this->context->cart->id;
                 }
-                
+
                 $customization_datas = $this->context->cart->getProductCustomization($productId, null, true);
                 $pp_values = $customization_datas;
 
@@ -472,7 +476,8 @@ class PitchPrint extends Module
                 }
 
                 if (!empty($pp_values)) {
-                    $pp_values = array_values($pp_values)[0]['value'];
+                    $request = 'SELECT `value` FROM `' . _DB_PREFIX_ . PITCHPRINT_TABLE_NAME . "` WHERE `cId` = {$pp_customization_id}";
+                    $pp_values = $db->getValue($request);
                 }
 
                 // Check for project in session cookie
@@ -602,7 +607,7 @@ class PitchPrint extends Module
                 );
 
                 $this->context->controller->registerJavascript(
-                    'module-pitchprint-product-buttons-new',
+                    'module-pitchprint-product-buttons',
                     'modules/' . $this->name . '/views/js/client.js',
                     ['position' => 'bottom', 'priority' => 203]
                 );
@@ -648,13 +653,21 @@ class PitchPrint extends Module
                 'afterValidation' => ($this->context->controller->php_self === 'my-account' ? '_fetchProjects' : '_sortCart'),
             ];
 
-            $this->context->smarty->assign(['ppData' => $ppData]);
+            Media::addJsDef(
+                [
+                    'pitchprintCartData' => $ppData,
+                ]
+            );
 
-            return $this->display(__DIR__, '/views/templates/front/ppCartData.tpl');
+            $this->context->controller->registerJavascript(
+                'module-pitchprint-cart-data',
+                'modules/' . $this->name . '/views/js/cartData.js',
+                ['position' => 'bottom', 'priority' => 199]
+            );
         }
     }
 
-// Admin functions =====================================================================================
+    // Admin functions =====================================================================================
 
     public function hookDisplayBackOfficeHeader($params)
     {
@@ -665,7 +678,6 @@ class PitchPrint extends Module
         if ($_controller->controller_name === 'AdminCarts' || $_controller->controller_name === 'AdminProducts' || $_controller->controller_name === 'AdminOrders') {
             $this->context->controller->addJquery();
             $this->context->controller->addJS(PP_ADMIN_JS);
-            $this->context->controller->addJS('modules/' . $this->name . '/views/js/adminOrder.js');
         }
     }
 
@@ -674,10 +686,20 @@ class PitchPrint extends Module
         $id_product = (int) $params['id_product'];
         if (Validate::isLoadedObject($product = new Product($id_product))) {
             $pp_val = '';
-            $p_designs = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
+            $pp_designs = Configuration::get(PITCHPRINT_P_DESIGNS);
+            if ($pp_designs) {
+                $p_designs = json_decode($pp_designs, true);
+                if (!$p_designs) {
+                    $p_designs = unserialize($pp_designs);
+                }
+            }
+
             if (!empty($p_designs[$id_product])) {
                 $pp_val = $p_designs[$id_product];
             }
+
+            $indexval = Db::getInstance()->getValue('SELECT `id_customization_field` FROM `' . _DB_PREFIX_ . 'customization_field` WHERE `id_product` = ' . (int) Tools::getValue('id_product') . ' AND `type` = 1  AND `is_module` = 1');
+            //			$indexval = Db::getInstance()->getValue("SELECT `id_customization_field` FROM `"._DB_PREFIX_."customization_field` WHERE `id_product` = " . $id_product . " AND `type` = 1 ");
 
             if (isset($p_designs[$id_product])) {
                 $pp_data_params = explode(':', $p_designs[$id_product]);
@@ -699,6 +721,9 @@ class PitchPrint extends Module
                 'pp_options' => $pp_options,
                 'current_display_opt' => $current_display_opt,
                 'PPADMIN_DEF' => PPADMIN_DEF,
+                'pp_val' => $pp_val,
+                'current_p_val' => isset($pp_data_params) ? $pp_data_params[0] : '0',
+                'indexval' => $indexval,
             ]);
 
             return $this->display(__FILE__, '/views/templates/admin/displayAdminProductsExtra.tpl');
@@ -741,11 +766,14 @@ class PitchPrint extends Module
 
     public function hookActionProductUpdate($params)
     {
-        $pp_pick = (string) Tools::getValue('ppa_values');
+        $pp_pick = (string) Tools::getValue('ppa_new_values');
         if (!empty($pp_pick) && $pp_pick != '') {
             $id_product = (int) $params['id_product'];
 
             $p_designs = json_decode(Configuration::get(PITCHPRINT_P_DESIGNS), true);
+            if (!$p_designs) {
+                $p_designs = unserialize(Configuration::get(PITCHPRINT_P_DESIGNS));
+            }
             $p_designs[$id_product] = $pp_pick;
             Configuration::updateValue(PITCHPRINT_P_DESIGNS, json_encode($p_designs));
         }
@@ -753,6 +781,18 @@ class PitchPrint extends Module
 
     public function hookDisplayAdminOrder($params)
     {
+        $pp_timestamp = time();
+        $pp_apiKey = Configuration::get(PITCHPRINT_API_KEY);
+        $pp_secretKey = Configuration::get(PITCHPRINT_SECRET_KEY);
+        $pp_signature = (!empty($pp_secretKey) && !empty($pp_apiKey)) ? md5($pp_apiKey . $pp_secretKey . $pp_timestamp) : '';
+
+        Media::addJsDef(
+            [
+                'pp_timestamp' => $pp_timestamp,
+                'pp_apiKey' => $pp_apiKey,
+                'pp_signature' => $pp_signature,
+             ]
+        );
         $this->context->controller->addJS('modules/' . $this->name . '/views/js/adminOrder.js');
     }
 
@@ -763,7 +803,6 @@ class PitchPrint extends Module
         if (Tools::isSubmit('submit' . $this->name)) {
             $pitchprint_api = (string) Tools::getValue(PITCHPRINT_API_KEY);
             $pitchprint_secret = (string) Tools::getValue(PITCHPRINT_SECRET_KEY);
-            $pp_cat_cust_enabled = (string) Tools::getValue(PITCHPRINT_CATEGORY_CUSTOMIZATION . '_enabled');
 
             if (!$pitchprint_api || !Validate::isGenericName($pitchprint_api) || !$pitchprint_secret || !Validate::isGenericName($pitchprint_secret)) {
                 $output .= $this->displayError($this->l('Invalid Configuration value'));
@@ -772,7 +811,6 @@ class PitchPrint extends Module
                 $pitchprint_secret = str_replace(' ', '', $pitchprint_secret);
                 Configuration::updateValue(PITCHPRINT_API_KEY, $pitchprint_api);
                 Configuration::updateValue(PITCHPRINT_SECRET_KEY, $pitchprint_secret);
-                Configuration::updateValue(PITCHPRINT_CATEGORY_CUSTOMIZATION, $pp_cat_cust_enabled === 'on' ? true : false);
 
                 $output .= $this->displayConfirmation($this->l('Settings updated'));
             }
@@ -805,20 +843,6 @@ class PitchPrint extends Module
                     'name' => PITCHPRINT_SECRET_KEY,
                     'size' => 40,
                     'required' => true,
-                ],
-                [
-                    'type' => 'checkbox',
-                    'name' => PITCHPRINT_CATEGORY_CUSTOMIZATION,
-                    'values' => [
-                        'query' => [
-                            [
-                                'id_option' => 'enabled',
-                                'name' => ' Enable customize buttons on category',
-                            ],
-                        ],
-                        'id' => 'id_option',
-                        'name' => 'name',
-                    ],
                 ],
             ],
             'submit' => [
@@ -856,7 +880,6 @@ class PitchPrint extends Module
         // Load current value
         $helper->fields_value[PITCHPRINT_API_KEY] = Configuration::get(PITCHPRINT_API_KEY);
         $helper->fields_value[PITCHPRINT_SECRET_KEY] = Configuration::get(PITCHPRINT_SECRET_KEY);
-        $helper->fields_value[PITCHPRINT_CATEGORY_CUSTOMIZATION . '_enabled'] = Configuration::get(PITCHPRINT_CATEGORY_CUSTOMIZATION);
 
         return $helper->generateForm($fields_form);
     }
