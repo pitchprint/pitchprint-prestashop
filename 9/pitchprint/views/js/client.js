@@ -27,7 +27,7 @@ if (typeof window.pp_data !== 'undefined') {
         document.querySelector('#product_customization_id').value = pp_data.id_customization;
         ajaxsearch = undefined;
         (function(_doc) {
-            pp_data.clientVersion = '9.0';
+            pp_data.clientVersion = '1.7';
             window.ppclient = new PitchPrintClient(window.pp_data);
         })(document);
     });

@@ -41,8 +41,8 @@ define('PP_NOES6_JS', 'https://pitchprint.io/rsc/js/noes6.js');
 
 define('PP_ADMIN_JS', 'https://pitchprint.io/rsc/js/a.ps.js');
 
-define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '10.0.0', readyFncs: [] };");
-define('PP_VERSION', '10.0.0');
+define('PPADMIN_DEF', "var PPADMIN = window.PPADMIN; if (typeof PPADMIN === 'undefined') window.PPADMIN = PPADMIN = { version: '10.1.0', readyFncs: [] };");
+define('PP_VERSION', '10.1.0');
 
 define('PITCHPRINT_API_KEY', 'pitchprint_API_KEY');
 define('PITCHPRINT_SECRET_KEY', 'pitchprint_SECRET_KEY');
@@ -179,9 +179,11 @@ class PitchPrint extends Module
     public function hookDisplayAdminOrderSide($params)
     {
         $products = $this->updateProducts($params);
-        return $this->get('twig')->render('@Modules/pitchprint/views/templates/admin/displayCustomization.twig', [
-            'products' => $products,
-        ]);
+        
+        // Use Smarty template instead of Twig for better compatibility
+        $this->context->smarty->assign('products', $products);
+        $html = $this->context->smarty->fetch(__DIR__ . '/views/templates/admin/displayCustomization.tpl');
+        return $html;
     }
     public function hookDisplayAdminOrderRight($params)
     {
@@ -312,7 +314,7 @@ class PitchPrint extends Module
     {
         $current_context = Context::getContext();
         if ($current_context->controller->controller_type == 'front') {
-            $this->smarty->assign('pp_customization_project_id', $params['customization']['value']);
+            $this->context->smarty->assign('pp_customization_project_id', $params['customization']['value']);
 
             return $this->fetch('module:pitchprint/views/templates/front/displayCustomization.tpl');
         }
@@ -671,13 +673,29 @@ class PitchPrint extends Module
 
     public function hookDisplayBackOfficeHeader($params)
     {
-        if (Tools::getValue('ajax')) {
-            return;
-        }
-        $_controller = $this->context->controller;
-        if ($_controller->controller_name === 'AdminCarts' || $_controller->controller_name === 'AdminProducts' || $_controller->controller_name === 'AdminOrders') {
-            $this->context->controller->addJquery();
-            $this->context->controller->addJS(PP_ADMIN_JS);
+        try {
+            if (Tools::getValue('ajax')) {
+                return;
+            }
+            $_controller = $this->context->controller;
+            if ($_controller->controller_name === 'AdminCarts' || $_controller->controller_name === 'AdminProducts' || $_controller->controller_name === 'AdminOrders') {
+                // $this->context->controller->addJquery();
+                
+                // Use registerJavascript for PrestaShop 9 compatibility
+                if (method_exists($this->context->controller, 'registerJavascript')) {
+                    $this->context->controller->registerJavascript(
+                        'pitchprint-admin-js',
+                        PP_ADMIN_JS,
+                        ['server' => 'remote', 'position' => 'bottom', 'priority' => 200]
+                    );
+                } else {
+                    // Fallback for older PrestaShop versions
+                    $this->context->controller->addJS(PP_ADMIN_JS);
+                }
+            }
+        } catch (Exception $e) {
+            // Log the error but don't break the page
+            error_log('PitchPrint hookDisplayBackOfficeHeader error: ' . $e->getMessage());
         }
     }
 
@@ -793,7 +811,18 @@ class PitchPrint extends Module
                 'pp_signature' => $pp_signature,
              ]
         );
-        $this->context->controller->addJS('modules/' . $this->name . '/views/js/adminOrder.js');
+        
+        // Use registerJavascript for PrestaShop 9 compatibility
+        if (method_exists($this->context->controller, 'registerJavascript')) {
+            $this->context->controller->registerJavascript(
+                'pitchprint-admin-order-js',
+                'modules/' . $this->name . '/views/js/adminOrder.js',
+                ['position' => 'bottom', 'priority' => 200]
+            );
+        } else {
+            // Fallback for older PrestaShop versions
+            $this->context->controller->addJS('modules/' . $this->name . '/views/js/adminOrder.js');
+        }
     }
 
     public function getContent()

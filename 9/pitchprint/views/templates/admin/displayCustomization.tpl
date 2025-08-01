@@ -52,7 +52,7 @@
       </thead>
       <tbody>
         {foreach from=$products item=product}
-            {if $product.pitchprint_customization }
+            {if isset($product.pitchprint_customization) }
               <tr class="order-product-customization">
                 <td class="border-top-0">{$product.product_name}</td>
                 <td>
